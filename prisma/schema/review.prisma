@@ -1,0 +1,16 @@
+model Review {
+  id         String   @id @default(cuid())
+  customerId String
+  gearItemId String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer User     @relation("CustomerReviews", fields: [customerId], references: [id], onDelete: Cascade)
+  gearItem GearItem @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, gearItemId])
+  @@index([gearItemId])
+  @@index([customerId])
+}
