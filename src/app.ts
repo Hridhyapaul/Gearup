@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import httpStatus from "http-status";
 import { notFound } from "./middlewares/notFound.js";
 import { globalErrorHandler } from "./middlewares/globalErrorHandler.js";
+import { authRoutes } from "./modules/auth/auth.routes.js";
 
 const app: Application = express();
 
@@ -18,12 +19,7 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-app.get("/health", (_req: Request, res: Response) => {
-  res.status(httpStatus.OK).json({
-    success: true,
-    message: "OK",
-  });
-});
+app.use("/api/auth", authRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);

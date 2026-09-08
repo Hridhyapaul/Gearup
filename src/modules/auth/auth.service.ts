@@ -4,6 +4,8 @@ import { prisma } from "../../lib/prisma";
 import { LoginInput, RegisterInput } from "./auth.types";
 import { SignOptions } from "jsonwebtoken";
 import { jwtUtils } from "../../utils/jwt";
+import AppError from "../../errors/AppError";
+import httpStatus from "http-status";
 
 const register = async (payload: RegisterInput) => {
   const { name, email, password, role } = payload;
@@ -15,7 +17,10 @@ const register = async (payload: RegisterInput) => {
   });
 
   if (isUserExist) {
-    throw new Error("User already exists with this email");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "User with this email already exists",
+    );
   }
 
   const hashedPassword = await bcrypt.hash(
@@ -54,17 +59,20 @@ const login = async (payload: LoginInput) => {
   });
 
   if (!user) {
-    throw new Error("Invalid email or password");
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid email or password");
   }
 
   if (!user.isActive) {
-    throw new Error("Your account has been blocked. Please contact support.");
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Your account has been blocked. Please contact support.",
+    );
   }
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
 
   if (!isPasswordMatched) {
-    throw new Error("Invalid email or password");
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid email or password");
   }
 
   const jwtPayload = {
@@ -95,21 +103,24 @@ const login = async (payload: LoginInput) => {
 };
 
 const getMe = async (userId: string) => {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      omit: {
-        password: true,
-      },
-    });
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    omit: {
+      password: true,
+    },
+  });
 
-    if (!user) {
-      throw new Error("User not found. Please log in again.");
-    }
+  if (!user) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "User not found. Please log in again.",
+    );
+  }
 
-    return user;
-  };
+  return user;
+};
 
 export const authService = {
   register,

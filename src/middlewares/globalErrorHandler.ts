@@ -11,12 +11,12 @@ export const globalErrorHandler = (
 ) => {
   let statusCode = err.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
   let errorMessage = err.message || "Internal Server Error";
-  let errorDetails = err.stack || "No error details available";
+  let errorDetails = {};
 
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     errorMessage = err.message;
-    errorDetails = err.stack ?? "No error details available";
+    errorDetails = err.errorDetails ?? {};
   } else if (err instanceof Prisma.PrismaClientValidationError) {
     statusCode = httpStatus.BAD_REQUEST;
     errorMessage =
