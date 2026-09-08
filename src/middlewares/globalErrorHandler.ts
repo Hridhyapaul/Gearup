@@ -5,21 +5,18 @@ import AppError from "../errors/AppError.js";
 
 export const globalErrorHandler = (
   err: any,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ) => {
-  let statusCode: number = httpStatus.INTERNAL_SERVER_ERROR;
-  let errorMessage = err.message || "Something went wrong";
-  let errorCode= err.code || httpStatus.INTERNAL_SERVER_ERROR;
-  let errorName = err.name || "Error";
-  let errorDetails = err.errorDetails ?? null;
-
+  let statusCode = err.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
+  let errorMessage = err.message || "Internal Server Error";
+  let errorDetails = err.stack || "No error details available";
 
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     errorMessage = err.message;
-    errorDetails = err.errorDetails ?? null;
+    errorDetails = err.stack ?? "No error details available";
   } else if (err instanceof Prisma.PrismaClientValidationError) {
     statusCode = httpStatus.BAD_REQUEST;
     errorMessage =
@@ -29,7 +26,7 @@ export const globalErrorHandler = (
       statusCode = httpStatus.BAD_REQUEST;
       errorMessage =
         "Unique constraint failed on the fields: " + err.meta?.target;
-      errorDetails = err.meta?.target ?? null;
+      errorDetails = err.meta?.target ?? {};
     } else if (err.code === "P2003") {
       statusCode = httpStatus.BAD_REQUEST;
       errorMessage = "Foreign key constraint failed";
@@ -54,12 +51,7 @@ export const globalErrorHandler = (
 
   res.status(statusCode).json({
     success: false,
-    statusCode:statusCode,
-    errorCode :errorCode,
     message: errorMessage,
-    errorName :errorName,
-    errorDetails :errorDetails,
-    stack :err.stack,
+    errorDetails: errorDetails,
   });
-  next(new AppError(statusCode, errorMessage, errorDetails));
 };

@@ -1,10 +1,21 @@
-import dotenv from "dotenv";
 import app from "./app.js";
+import config from "./config/index.js";
+import { prisma } from "./lib/prisma.js";
 
-dotenv.config();
+const PORT = config.port;
 
-const PORT = Number(process.env.PORT) || 5000;
+const main = async () => {
+  try {
+    await prisma.$connect();
+    console.log("Connected to the database successfully");
+    app.listen(PORT, () => {
+      console.log(`GearUp server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.log("Error connecting to database", error);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+};
 
-app.listen(PORT, () => {
-  console.log(`GearUp server is running on port ${PORT}`);
-});
+main();

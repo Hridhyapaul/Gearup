@@ -2,6 +2,8 @@ import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import httpStatus from "http-status";
+import { notFound } from "./middlewares/notFound.js";
+import { globalErrorHandler } from "./middlewares/globalErrorHandler.js";
 
 const app: Application = express();
 
@@ -23,11 +25,7 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-app.use((_req: Request, res: Response) => {
-  res.status(httpStatus.NOT_FOUND).json({
-    success: false,
-    message: "Route not found",
-  });
-});
+app.use(notFound);
+app.use(globalErrorHandler);
 
 export default app;
