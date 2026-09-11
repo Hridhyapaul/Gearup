@@ -1,5 +1,5 @@
 model Payment {
-  id            String        @id @default(cuid())
+  id            String        @id @default(uuid())
   rentalOrderId String        @unique
   amount        Decimal       @db.Decimal(12, 2)
   paymentMethod PaymentMethod

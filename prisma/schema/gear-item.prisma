@@ -1,5 +1,5 @@
 model GearItem {
-  id             String   @id @default(cuid())
+  id             String   @id @default(uuid())
   name           String
   slug           String   @unique
   description    String?
