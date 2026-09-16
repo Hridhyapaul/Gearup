@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "db:studio": "prisma studio"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +15,6 @@
   "type": "module",
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -26,6 +26,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@prisma/client": "^7.10.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
@@ -34,7 +35,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.4.1",
     "@types/pg": "^8.23.1",
-    "prisma": "^8.0.0-rc.15",
+    "prisma": "^7.10.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   },
