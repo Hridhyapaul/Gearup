@@ -8,10 +8,19 @@ import { authRoutes } from "./modules/auth/auth.routes.js";
 import { categoryRoutes } from "./modules/category/category.routes.js";
 import { gearItemRoutes } from "./modules/gearItem/gearItem.routes.js";
 import { rentalOrderRoutes } from "./modules/rentalOrder/rentalOrder.routes.js";
+import { paymentRoutes } from "./modules/payment/payment.routes.js";
+import { paymentController } from "./modules/payment/payment.controller.js";
 
 const app: Application = express();
 
 app.use(cors());
+
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  paymentController.handleStripeWebhook,
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -26,6 +35,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/gear-items", gearItemRoutes);
 app.use("/api/rental-orders", rentalOrderRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);

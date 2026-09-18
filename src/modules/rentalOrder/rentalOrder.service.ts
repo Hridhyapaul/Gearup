@@ -2,6 +2,8 @@ import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import { CreateRentalOrderInput, RentalOrderQuery } from "./rentalOrder.types";
+import { RentalOrderWhereInput } from "../../generated/prisma/models";
+import { RentalOrderStatus } from "../../generated/prisma/enums";
 
 
 const createRentalOrder = async (
@@ -148,7 +150,7 @@ const getAllRentalOrders = async (
   const sortBy = query.sortBy ? query.sortBy : "createdAt";
   const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
-  const andConditions: any[] = [];
+  const andConditions: RentalOrderWhereInput[] = [];
 
   if (customerId) {
     andConditions.push({
@@ -157,8 +159,19 @@ const getAllRentalOrders = async (
   }
 
   if (query.status) {
+    const isValidStatus = Object.values(RentalOrderStatus).includes(
+      query.status as RentalOrderStatus,
+    );
+
+    if (!isValidStatus) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Invalid rental order status",
+      );
+    }
+
     andConditions.push({
-      status: query.status,
+      status: query.status as RentalOrderStatus,
     });
   }
 
