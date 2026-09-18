@@ -23,4 +23,10 @@ router.get(
   rentalOrderController.getRentalOrderById,
 );
 
+router.patch(
+  "/:rentalOrderId/status",
+  auth(UserRole.PROVIDER, UserRole.ADMIN),
+  rentalOrderController.updateRentalOrder,
+);
+
 export const rentalOrderRoutes = router;

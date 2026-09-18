@@ -19,14 +19,19 @@ const createRentalOrderSchema = z
       .array(rentalOrderItemSchema)
       .min(1, "At least one gear item is required"),
   })
-  .refine(
-    (data) => new Date(data.endDate) > new Date(data.startDate),
-    {
-      message: "End date must be after start date",
-      path: ["endDate"],
-    },
-  );
+  .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
+    message: "End date must be after start date",
+    path: ["endDate"],
+  });
+
+const updateRentalOrderSchema = z.object({
+  status: z.enum(
+    ["PICKED_UP", "RETURNED"],
+    "Status must be PICKED_UP or RETURNED",
+  ),
+});
 
 export const rentalOrderValidation = {
   createRentalOrderSchema,
+  updateRentalOrderSchema
 };

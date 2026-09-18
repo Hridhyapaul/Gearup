@@ -96,8 +96,57 @@ const getRentalOrderById = catchAsync(
   },
 );
 
+const updateRentalOrder = catchAsync(
+  async (req: Request, res: Response) => {
+    const validationResult =
+      rentalOrderValidation.updateRentalOrderSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Rental order validation failed",
+        validationResult.error.issues,
+      );
+    }
+
+    const userId = req.user?.userId;
+    const userRole = req.user?.role;
+
+    if (!userId || !userRole) {
+      throw new AppError(
+        httpStatus.UNAUTHORIZED,
+        "User authentication is required",
+      );
+    }
+
+    const rentalOrderId = req.params.rentalOrderId as string;
+
+    if (!rentalOrderId) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Rental order ID is required",
+      );
+    }
+
+    const rentalOrder = await rentalOrderService.updateRentalOrder(
+      rentalOrderId,
+      validationResult.data.status,
+      userId,
+      userRole,
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Rental order updated successfully",
+      data: { rentalOrder },
+    });
+  },
+);
+
 export const rentalOrderController = {
   createRentalOrder,
   getAllRentalOrders,
   getRentalOrderById,
+  updateRentalOrder,
 };

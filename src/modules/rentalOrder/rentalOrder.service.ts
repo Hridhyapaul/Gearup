@@ -5,7 +5,6 @@ import { CreateRentalOrderInput, RentalOrderQuery } from "./rentalOrder.types";
 import { RentalOrderWhereInput } from "../../generated/prisma/models";
 import { RentalOrderStatus } from "../../generated/prisma/enums";
 
-
 const createRentalOrder = async (
   payload: CreateRentalOrderInput,
   customerId: string,
@@ -15,12 +14,9 @@ const createRentalOrder = async (
   const rentalStartDate = new Date(startDate);
   const rentalEndDate = new Date(endDate);
 
-  const rentalTime =
-    rentalEndDate.getTime() - rentalStartDate.getTime();
+  const rentalTime = rentalEndDate.getTime() - rentalStartDate.getTime();
 
-  const rentalDays = Math.ceil(
-    rentalTime / (1000 * 60 * 60 * 24),
-  );
+  const rentalDays = Math.ceil(rentalTime / (1000 * 60 * 60 * 24));
 
   if (rentalDays <= 0) {
     throw new AppError(
@@ -79,8 +75,7 @@ const createRentalOrder = async (
 
       const pricePerDay = Number(gearItem.pricePerDay);
 
-      const subtotal =
-        pricePerDay * item.quantity * rentalDays;
+      const subtotal = pricePerDay * item.quantity * rentalDays;
 
       totalAmount += subtotal;
 
@@ -164,10 +159,7 @@ const getAllRentalOrders = async (
     );
 
     if (!isValidStatus) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Invalid rental order status",
-      );
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid rental order status");
     }
 
     andConditions.push({
@@ -246,10 +238,7 @@ const getRentalOrderById = async (
   });
 
   if (!rentalOrder) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Rental order not found",
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Rental order not found");
   }
 
   if (!isAdmin && rentalOrder.customerId !== customerId) {
@@ -262,8 +251,120 @@ const getRentalOrderById = async (
   return rentalOrder;
 };
 
+const updateRentalOrder = async (
+  rentalOrderId: string,
+  status: RentalOrderStatus,
+  userId: string,
+  userRole: string,
+) => {
+  const rentalOrder = await prisma.rentalOrder.findUnique({
+    where: {
+      id: rentalOrderId,
+    },
+    include: {
+      items: {
+        include: {
+          gearItem: {
+            select: {
+              providerId: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!rentalOrder) {
+    throw new AppError(httpStatus.NOT_FOUND, "Rental order not found");
+  }
+
+  if (userRole === "PROVIDER") {
+    const isProviderOwner = rentalOrder.items.some(
+      (item) => item.gearItem.providerId === userId,
+    );
+
+    if (!isProviderOwner) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not allowed to update this rental order",
+      );
+    }
+  }
+
+  if (rentalOrder.status === RentalOrderStatus.RETURNED) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Returned rental order cannot be updated",
+    );
+  }
+
+  if (
+    rentalOrder.status === RentalOrderStatus.PAID &&
+    status !== RentalOrderStatus.PICKED_UP
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "A paid rental order can only be picked up",
+    );
+  }
+
+  if (
+    rentalOrder.status === RentalOrderStatus.PICKED_UP &&
+    status !== RentalOrderStatus.RETURNED
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "A picked-up rental order can only be returned",
+    );
+  }
+
+  return await prisma.$transaction(async (tx) => {
+    const updatedRentalOrder = await tx.rentalOrder.update({
+      where: {
+        id: rentalOrderId,
+      },
+      data: {
+        status,
+      },
+      include: {
+        items: {
+          include: {
+            gearItem: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                image: true,
+              },
+            },
+          },
+        },
+        payment: true,
+      },
+    });
+
+    if (status === RentalOrderStatus.RETURNED) {
+      for (const item of rentalOrder.items) {
+        await tx.gearItem.update({
+          where: {
+            id: item.gearItemId,
+          },
+          data: {
+            availableStock: {
+              increment: item.quantity,
+            },
+          },
+        });
+      }
+    }
+
+    return updatedRentalOrder;
+  });
+};
+
 export const rentalOrderService = {
   createRentalOrder,
   getAllRentalOrders,
   getRentalOrderById,
+  updateRentalOrder,
 };
