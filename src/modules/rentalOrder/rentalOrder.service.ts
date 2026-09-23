@@ -3,7 +3,7 @@ import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import { CreateRentalOrderInput, RentalOrderQuery } from "./rentalOrder.types";
 import { RentalOrderWhereInput } from "../../generated/prisma/models";
-import { RentalOrderStatus } from "../../generated/prisma/enums";
+import { RentalOrderStatus, UserRole } from "../../generated/prisma/enums";
 
 const createRentalOrder = async (
   payload: CreateRentalOrderInput,
@@ -255,7 +255,7 @@ const updateRentalOrder = async (
   rentalOrderId: string,
   status: RentalOrderStatus,
   userId: string,
-  userRole: string,
+  userRole: UserRole,
 ) => {
   const rentalOrder = await prisma.rentalOrder.findUnique({
     where: {
@@ -275,10 +275,13 @@ const updateRentalOrder = async (
   });
 
   if (!rentalOrder) {
-    throw new AppError(httpStatus.NOT_FOUND, "Rental order not found");
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Rental order not found",
+    );
   }
 
-  if (userRole === "PROVIDER") {
+  if (userRole === UserRole.PROVIDER) {
     const isProviderOwner = rentalOrder.items.some(
       (item) => item.gearItem.providerId === userId,
     );
@@ -291,6 +294,62 @@ const updateRentalOrder = async (
     }
   }
 
+  /*
+   * Handle rental order cancellation
+   */
+  if (status === RentalOrderStatus.CANCELLED) {
+    if (rentalOrder.status !== RentalOrderStatus.PLACED) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Only placed rental orders can be cancelled",
+      );
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const updatedRentalOrder = await tx.rentalOrder.update({
+        where: {
+          id: rentalOrderId,
+        },
+        data: {
+          status: RentalOrderStatus.CANCELLED,
+        },
+        include: {
+          items: {
+            include: {
+              gearItem: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  image: true,
+                },
+              },
+            },
+          },
+          payment: true,
+        },
+      });
+
+      for (const item of rentalOrder.items) {
+        await tx.gearItem.update({
+          where: {
+            id: item.gearItemId,
+          },
+          data: {
+            availableStock: {
+              increment: item.quantity,
+            },
+          },
+        });
+      }
+
+      return updatedRentalOrder;
+    });
+  }
+
+  /*
+   * Prevent updating a returned order
+   */
   if (rentalOrder.status === RentalOrderStatus.RETURNED) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -298,6 +357,9 @@ const updateRentalOrder = async (
     );
   }
 
+  /*
+   * PAID → PICKED_UP
+   */
   if (
     rentalOrder.status === RentalOrderStatus.PAID &&
     status !== RentalOrderStatus.PICKED_UP
@@ -308,6 +370,9 @@ const updateRentalOrder = async (
     );
   }
 
+  /*
+   * PICKED_UP → RETURNED
+   */
   if (
     rentalOrder.status === RentalOrderStatus.PICKED_UP &&
     status !== RentalOrderStatus.RETURNED
@@ -343,6 +408,9 @@ const updateRentalOrder = async (
       },
     });
 
+    /*
+     * Restore stock when gear is returned
+     */
     if (status === RentalOrderStatus.RETURNED) {
       for (const item of rentalOrder.items) {
         await tx.gearItem.update({
