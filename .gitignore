@@ -4,10 +4,6 @@ node_modules/
 # Build output
 dist/
 
-# Prisma generated client
-generated/prisma/
-generated/
-
 # Environment
 .env
 .env.*
