@@ -1,10 +1,10 @@
 import httpStatus from "http-status";
 
-import AppError from "../../errors/AppError";
-import { prisma } from "../../lib/prisma";
-import { UserWhereInput } from "../../generated/prisma/models";
-import { UserRole } from "../../generated/prisma/enums";
-import { UpdateUserInput, UserQuery } from "./user.types";
+import AppError from "../../errors/AppError.js";
+import { prisma } from "../../lib/prisma.js";
+import { UserWhereInput } from "../../generated/prisma/models.js";
+import { UserRole } from "../../generated/prisma/enums.js";
+import { UpdateUserInput, UserQuery } from "./user.types.js";
 
 const getAllUsers = async (query: UserQuery) => {
   const limit = query.limit ? Number(query.limit) : 10;

@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import { catchAsync } from "../../utils/catchAsync";
-import { gearItemValidation } from "./gearItem.validation";
-import AppError from "../../errors/AppError";
-import { gearItemService } from "./gearItem.service";
-import { sendResponse } from "../../utils/sendResponse";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { gearItemValidation } from "./gearItem.validation.js";
+import AppError from "../../errors/AppError.js";
+import { gearItemService } from "./gearItem.service.js";
+import { sendResponse } from "../../utils/sendResponse.js";
 
 
 

@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
 
-import AppError from "../../errors/AppError";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
-import { reviewService } from "./review.service";
-import { reviewValidation } from "./review.validation";
+import AppError from "../../errors/AppError.js";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendResponse } from "../../utils/sendResponse.js";
+import { reviewService } from "./review.service.js";
+import { reviewValidation } from "./review.validation.js";
 
 const createReview = catchAsync(
   async (req: Request, res: Response) => {

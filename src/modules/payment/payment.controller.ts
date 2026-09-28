@@ -1,17 +1,17 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
 
-import AppError from "../../errors/AppError";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
+import AppError from "../../errors/AppError.js";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendResponse } from "../../utils/sendResponse.js";
 
-import { paymentService } from "./payment.service";
-import { paymentValidation } from "./payment.validation";
-import config from "../../config";
-import { stripe } from "../../lib/stripe";
+import { paymentService } from "./payment.service.js";
+import { paymentValidation } from "./payment.validation.js";
+import config from "../../config/index.js";
+import { stripe } from "../../lib/stripe.js";
 import Stripe from "stripe";
-import { prisma } from "../../lib/prisma";
-import { PaymentStatus, UserRole } from "../../generated/prisma/enums";
+import { prisma } from "../../lib/prisma.js";
+import { PaymentStatus, UserRole } from "../../generated/prisma/enums.js";
 
 const createPayment = catchAsync(async (req: Request, res: Response) => {
   const validationResult = paymentValidation.createPaymentSchema.safeParse(

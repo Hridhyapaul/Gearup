@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import { catchAsync } from "../../utils/catchAsync";
-import { rentalOrderValidation } from "./rentalOrder.validation";
-import AppError from "../../errors/AppError";
-import { rentalOrderService } from "./rentalOrder.service";
-import { sendResponse } from "../../utils/sendResponse";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { rentalOrderValidation } from "./rentalOrder.validation.js";
+import AppError from "../../errors/AppError.js";
+import { rentalOrderService } from "./rentalOrder.service.js";
+import { sendResponse } from "../../utils/sendResponse.js";
 
 const createRentalOrder = catchAsync(async (req: Request, res: Response) => {
   const validationResult =

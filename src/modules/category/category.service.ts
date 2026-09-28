@@ -1,7 +1,7 @@
-import AppError from "../../errors/AppError";
-import { CategoryWhereInput } from "../../generated/prisma/models";
-import { prisma } from "../../lib/prisma";
-import { CategoryQuery, CreateCategoryInput, UpdateCategoryInput } from "./category.types";
+import AppError from "../../errors/AppError.js";
+import { CategoryWhereInput } from "../../generated/prisma/models.js";
+import { prisma } from "../../lib/prisma.js";
+import { CategoryQuery, CreateCategoryInput, UpdateCategoryInput } from "./category.types.js";
 import httpStatus from "http-status";
 
 const createCategory = async (payload: CreateCategoryInput) => {

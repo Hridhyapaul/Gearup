@@ -1,8 +1,8 @@
 import httpStatus from "http-status";
-import { RentalOrderStatus } from "../../generated/prisma/enums";
-import AppError from "../../errors/AppError";
-import { prisma } from "../../lib/prisma";
-import { CreateReviewInput } from "./review.types";
+import { RentalOrderStatus } from "../../generated/prisma/enums.js";
+import AppError from "../../errors/AppError.js";
+import { prisma } from "../../lib/prisma.js";
+import { CreateReviewInput } from "./review.types.js";
 
 const createReview = async (
   payload: CreateReviewInput,

@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
 
-import AppError from "../../errors/AppError";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
-import { userService } from "./user.service";
-import { userValidation } from "./user.validation";
+import AppError from "../../errors/AppError.js";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendResponse } from "../../utils/sendResponse.js";
+import { userService } from "./user.service.js";
+import { userValidation } from "./user.validation.js";
 
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   const result = await userService.getAllUsers(req.query);

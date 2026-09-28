@@ -1,10 +1,10 @@
 import bcrypt from "bcryptjs";
-import config from "../../config";
-import { prisma } from "../../lib/prisma";
-import { LoginInput, RegisterInput } from "./auth.types";
+import config from "../../config/index.js";
+import { prisma } from "../../lib/prisma.js";
+import { LoginInput, RegisterInput } from "./auth.types.js";
 import { SignOptions } from "jsonwebtoken";
-import { jwtUtils } from "../../utils/jwt";
-import AppError from "../../errors/AppError";
+import { jwtUtils } from "../../utils/jwt.js";
+import AppError from "../../errors/AppError.js";
 import httpStatus from "http-status";
 
 const register = async (payload: RegisterInput) => {

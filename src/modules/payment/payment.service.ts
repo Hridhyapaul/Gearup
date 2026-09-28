@@ -1,17 +1,17 @@
 import httpStatus from "http-status";
 
-import { PaymentMethod, PaymentStatus } from "../../generated/prisma/enums";
-import { PaymentWhereInput } from "../../generated/prisma/models";
+import { PaymentMethod, PaymentStatus } from "../../generated/prisma/enums.js";
+import { PaymentWhereInput } from "../../generated/prisma/models.js";
 
-import AppError from "../../errors/AppError";
-import { prisma } from "../../lib/prisma";
+import AppError from "../../errors/AppError.js";
+import { prisma } from "../../lib/prisma.js";
 
 import {
   CreatePaymentInput,
   PaymentQuery,
-} from "./payment.types";
-import config from "../../config";
-import { stripe } from "../../lib/stripe";
+} from "./payment.types.js";
+import config from "../../config/index.js";
+import { stripe } from "../../lib/stripe.js";
 import Stripe from "stripe";
 
 const createPayment = async (

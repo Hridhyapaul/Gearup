@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import { catchAsync } from "../../utils/catchAsync";
-import { categoryService } from "./category.service";
-import { sendResponse } from "../../utils/sendResponse";
-import { categoryValidation } from "./category.validation";
-import AppError from "../../errors/AppError";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { categoryService } from "./category.service.js";
+import { sendResponse } from "../../utils/sendResponse.js";
+import { categoryValidation } from "./category.validation.js";
+import AppError from "../../errors/AppError.js";
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
   const validationResult = categoryValidation.createCategorySchema.safeParse(

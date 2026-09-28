@@ -5,10 +5,10 @@ import {
   CreateGearItemInput,
   GearItemQuery,
   UpdateGearItemInput,
-} from "./gearItem.types";
-import { prisma } from "../../lib/prisma";
-import AppError from "../../errors/AppError";
-import { GearItemWhereInput } from "../../generated/prisma/models";
+} from "./gearItem.types.js";
+import { prisma } from "../../lib/prisma.js";
+import AppError from "../../errors/AppError.js";
+import { GearItemWhereInput } from "../../generated/prisma/models.js";
 
 const createGearItem = async (
   payload: CreateGearItemInput,

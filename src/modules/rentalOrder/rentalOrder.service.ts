@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
-import AppError from "../../errors/AppError";
-import { prisma } from "../../lib/prisma";
-import { CreateRentalOrderInput, RentalOrderQuery } from "./rentalOrder.types";
-import { RentalOrderWhereInput } from "../../generated/prisma/models";
-import { RentalOrderStatus, UserRole } from "../../generated/prisma/enums";
+import AppError from "../../errors/AppError.js";
+import { prisma } from "../../lib/prisma.js";
+import { CreateRentalOrderInput, RentalOrderQuery } from "./rentalOrder.types.js";
+import { RentalOrderWhereInput } from "../../generated/prisma/models.js";
+import { RentalOrderStatus, UserRole } from "../../generated/prisma/enums.js";
 
 const createRentalOrder = async (
   payload: CreateRentalOrderInput,
