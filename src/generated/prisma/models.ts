@@ -8,12 +8,12 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/Category'
-export type * from './models/GearItem'
-export type * from './models/Payment'
-export type * from './models/Profile'
-export type * from './models/RentalOrderItem'
-export type * from './models/RentalOrder'
-export type * from './models/Review'
-export type * from './models/User'
-export type * from './commonInputTypes'
+export type * from './models/Category.js'
+export type * from './models/GearItem.js'
+export type * from './models/Payment.js'
+export type * from './models/Profile.js'
+export type * from './models/RentalOrderItem.js'
+export type * from './models/RentalOrder.js'
+export type * from './models/Review.js'
+export type * from './models/User.js'
+export type * from './commonInputTypes.js'
