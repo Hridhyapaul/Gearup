@@ -84,6 +84,59 @@ const createReview = async (
   return review;
 };
 
+const getReviews = async (gearItemId?: string) => {
+  const reviews = await prisma.review.findMany({
+    where: gearItemId
+      ? {
+          gearItemId,
+        }
+      : undefined,
+
+    include: {
+      gearItem: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return reviews;
+};
+
+const getReviewById = async (reviewId: string) => {
+  const review = await prisma.review.findUnique({
+    where: {
+      id: reviewId,
+    },
+
+    include: {
+      gearItem: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!review) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Review not found",
+    );
+  }
+
+  return review;
+};
+
 export const reviewService = {
   createReview,
+  getReviews,
+  getReviewById,
 };
