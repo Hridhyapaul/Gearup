@@ -1,6 +1,5 @@
 import httpStatus from "http-status";
 
-
 import {
   CreateGearItemInput,
   GearItemQuery,
@@ -177,6 +176,22 @@ const getAllGearItems = async (query: GearItemQuery) => {
   };
 };
 
+const getMyGearItems = async (providerId: string) => {
+  const gearItems = await prisma.gearItem.findMany({
+    where: {
+      providerId,
+    },
+    include: {
+      category: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return gearItems;
+};
+
 const getGearItemById = async (gearItemId: string) => {
   const gearItem = await prisma.gearItem.findUnique({
     where: { id: gearItemId },
@@ -300,6 +315,7 @@ const deleteGearItem = async (
 export const gearItemService = {
   createGearItem,
   getAllGearItems,
+  getMyGearItems,
   getGearItemById,
   updateGearItem,
   deleteGearItem,

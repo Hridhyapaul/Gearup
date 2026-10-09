@@ -6,11 +6,10 @@ import AppError from "../../errors/AppError.js";
 import { gearItemService } from "./gearItem.service.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 
-
-
 const createGearItem = catchAsync(async (req: Request, res: Response) => {
-  const validationResult =
-    gearItemValidation.createGearItemSchema.safeParse(req.body);
+  const validationResult = gearItemValidation.createGearItemSchema.safeParse(
+    req.body,
+  );
 
   if (!validationResult.success) {
     throw new AppError(
@@ -54,6 +53,19 @@ const getAllGearItems = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getMyGearItems = catchAsync(async (req: Request, res: Response) => {
+  const providerId = req.user?.userId;
+
+  const gearItems = await gearItemService.getMyGearItems(providerId!);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Your gear items retrieved successfully",
+    data: gearItems,
+  });
+});
+
 const getGearItemById = catchAsync(async (req: Request, res: Response) => {
   const gearItem = await gearItemService.getGearItemById(
     req.params.gearItemId as string,
@@ -68,8 +80,9 @@ const getGearItemById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateGearItem = catchAsync(async (req: Request, res: Response) => {
-  const validationResult =
-    gearItemValidation.updateGearItemSchema.safeParse(req.body);
+  const validationResult = gearItemValidation.updateGearItemSchema.safeParse(
+    req.body,
+  );
 
   if (!validationResult.success) {
     throw new AppError(
@@ -132,6 +145,7 @@ const deleteGearItem = catchAsync(async (req: Request, res: Response) => {
 export const gearItemController = {
   createGearItem,
   getAllGearItems,
+  getMyGearItems,
   getGearItemById,
   updateGearItem,
   deleteGearItem,

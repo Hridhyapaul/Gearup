@@ -13,6 +13,12 @@ router.post(
 
 router.get("/", gearItemController.getAllGearItems);
 
+router.get(
+  "/my",
+  auth(UserRole.PROVIDER),
+  gearItemController.getMyGearItems,
+);
+
 router.get("/:gearItemId", gearItemController.getGearItemById);
 
 router.patch(
