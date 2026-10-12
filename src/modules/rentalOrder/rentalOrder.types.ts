@@ -16,3 +16,10 @@ export type RentalOrderItemInput = {
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   };
+
+  export type ProviderOrdersQuery = {
+    status?: string;
+    page?: string;
+    limit?: string;
+    sortOrder?: string;
+  };

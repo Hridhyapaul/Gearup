@@ -10,6 +10,7 @@ import { gearItemRoutes } from "./modules/gearItem/gearItem.routes.js";
 import { rentalOrderRoutes } from "./modules/rentalOrder/rentalOrder.routes.js";
 import { paymentRoutes } from "./modules/payment/payment.routes.js";
 import { paymentController } from "./modules/payment/payment.controller.js";
+import { providerRoutes } from "./modules/provider/provider.routes.js";
 import { reviewRoutes } from "./modules/review/review.route.js";
 import { userRoutes } from "./modules/user/user.route.js";
 
@@ -38,6 +39,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/gear-items", gearItemRoutes);
 app.use("/api/rental-orders", rentalOrderRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/provider", providerRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/users", userRoutes);
 

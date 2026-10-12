@@ -1,7 +1,11 @@
 import httpStatus from "http-status";
 import AppError from "../../errors/AppError.js";
 import { prisma } from "../../lib/prisma.js";
-import { CreateRentalOrderInput, RentalOrderQuery } from "./rentalOrder.types.js";
+import {
+  CreateRentalOrderInput,
+  ProviderOrdersQuery,
+  RentalOrderQuery,
+} from "./rentalOrder.types.js";
 import { RentalOrderWhereInput } from "../../generated/prisma/models.js";
 import { RentalOrderStatus, UserRole } from "../../generated/prisma/enums.js";
 
@@ -430,9 +434,132 @@ const updateRentalOrder = async (
   });
 };
 
+const getProviderIncomingOrders = async (
+  providerId: string,
+  query: ProviderOrdersQuery,
+) => {
+  const page = query.page !== undefined ? Number(query.page) : 1;
+  const limit = query.limit !== undefined ? Number(query.limit) : 10;
+  const sortOrder = query.sortOrder ?? "desc";
+
+  if (!Number.isInteger(page) || page < 1) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid page value");
+  }
+
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid limit value");
+  }
+
+  if (sortOrder !== "asc" && sortOrder !== "desc") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Invalid sortOrder value. Use 'asc' or 'desc'",
+    );
+  }
+
+  const andConditions: RentalOrderWhereInput[] = [
+    {
+      items: {
+        some: {
+          gearItem: {
+            providerId,
+          },
+        },
+      },
+    },
+  ];
+
+  if (query.status) {
+    const isValidStatus = Object.values(RentalOrderStatus).includes(
+      query.status as RentalOrderStatus,
+    );
+
+    if (!isValidStatus) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid rental order status");
+    }
+
+    andConditions.push({
+      status: query.status as RentalOrderStatus,
+    });
+  }
+
+  const where: RentalOrderWhereInput = {
+    AND: andConditions,
+  };
+
+  const skip = (page - 1) * limit;
+
+  const [rentalOrders, total] = await Promise.all([
+    prisma.rentalOrder.findMany({
+      where,
+      select: {
+        id: true,
+        customerId: true,
+        startDate: true,
+        endDate: true,
+        totalAmount: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        items: {
+          where: {
+            gearItem: {
+              providerId,
+            },
+          },
+          select: {
+            id: true,
+            quantity: true,
+            pricePerDay: true,
+            startDate: true,
+            endDate: true,
+            subtotal: true,
+            gearItem: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                image: true,
+              },
+            },
+          },
+        },
+        payment: {
+          select: {
+            id: true,
+            amount: true,
+            paymentMethod: true,
+            status: true,
+            paidAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      take: limit,
+      skip,
+      orderBy: {
+        createdAt: sortOrder,
+      },
+    }),
+    prisma.rentalOrder.count({ where }),
+  ]);
+
+  return {
+    data: rentalOrders,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
 export const rentalOrderService = {
   createRentalOrder,
   getAllRentalOrders,
   getRentalOrderById,
   updateRentalOrder,
+  getProviderIncomingOrders,
 };
