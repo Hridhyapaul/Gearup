@@ -98,6 +98,38 @@ const handleStripeWebhook = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
+  const sessionIdParam = req.query.session_id;
+  const sessionId = Array.isArray(sessionIdParam)
+    ? sessionIdParam[0]
+    : sessionIdParam;
+
+  if (!sessionId || typeof sessionId !== "string") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Stripe checkout session ID is required",
+    );
+  }
+
+  const result = await paymentService.confirmCheckoutSessionById(sessionId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Payment completed successfully",
+    data: result,
+  });
+});
+
+const paymentCancel = catchAsync(async (_req: Request, res: Response) => {
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Payment was cancelled. No charge was made.",
+    data: null,
+  });
+});
+
 const getAllPayments = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   const userRole = req.user?.role;
@@ -153,6 +185,8 @@ export const paymentController = {
   createPayment,
   createStripeCheckoutSession,
   handleStripeWebhook,
+  paymentSuccess,
+  paymentCancel,
   getAllPayments,
   getPaymentById,
 };

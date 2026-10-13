@@ -226,12 +226,17 @@ const createStripeCheckoutSession = async (
     );
   }
 
+  // Stripe replaces {CHECKOUT_SESSION_ID} so the success page can verify payment.
+  const checkoutSuccessUrl = successUrl.includes("{CHECKOUT_SESSION_ID}")
+    ? successUrl
+    : `${successUrl}${successUrl.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`;
+
   // Create the Stripe session before writing a new Payment row so a Stripe
   // failure cannot leave an orphan PENDING record. Never delete payments.
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: lineItems,
-    success_url: successUrl,
+    success_url: checkoutSuccessUrl,
     cancel_url: cancelUrl,
     metadata: {
       rentalOrderId: rentalOrder.id,
@@ -372,6 +377,30 @@ const handleExpiredCheckoutSession = async (
   }
 };
 
+/**
+ * Verifies the Checkout Session with Stripe and marks payment PAID when paid.
+ * Used by the webhook and as a success-URL fallback (never trusts the browser alone).
+ */
+const confirmCheckoutSessionById = async (
+  sessionId: string,
+): Promise<{ sessionId: string; paymentStatus: string }> => {
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  if (session.payment_status !== "paid") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Stripe checkout session is not paid yet",
+    );
+  }
+
+  await completePaymentFromCheckoutSession(session);
+
+  return {
+    sessionId: session.id,
+    paymentStatus: String(session.payment_status),
+  };
+};
+
 const handleStripeWebhook = async (
   rawBody: Buffer | string,
   signature: string,
@@ -385,10 +414,23 @@ const handleStripeWebhook = async (
     );
   }
 
+  const payload = Buffer.isBuffer(rawBody)
+    ? rawBody
+    : typeof rawBody === "string"
+      ? Buffer.from(rawBody)
+      : null;
+
+  if (!payload) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Stripe webhook raw body is required for signature verification",
+    );
+  }
+
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   } catch {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -541,6 +583,7 @@ const getPaymentById = async (paymentId: string, customerId?: string) => {
 export const paymentService = {
   createPayment,
   createStripeCheckoutSession,
+  confirmCheckoutSessionById,
   handleStripeWebhook,
   getAllPayments,
   getPaymentById,

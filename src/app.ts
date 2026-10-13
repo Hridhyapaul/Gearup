@@ -34,6 +34,11 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
+// Stripe redirect targets (configured via STRIPE_SUCCESS_URL / STRIPE_CANCEL_URL).
+// Success verifies the session with Stripe before marking payment PAID.
+app.get("/payment/success", paymentController.paymentSuccess);
+app.get("/payment/cancel", paymentController.paymentCancel);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/gear-items", gearItemRoutes);
