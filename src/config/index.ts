@@ -1,7 +1,11 @@
 import dotenv from "dotenv";
 import path from "path";
 
-dotenv.config({ path: path.join(process.cwd(), ".env") });
+dotenv.config({
+  path: path.join(process.cwd(), ".env"),
+  // Prefer .env values over empty/stale shell environment variables.
+  override: true,
+});
 
 export default {
   port: process.env.PORT,

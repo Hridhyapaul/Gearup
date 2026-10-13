@@ -7,11 +7,7 @@ import { sendResponse } from "../../utils/sendResponse.js";
 
 import { paymentService } from "./payment.service.js";
 import { paymentValidation } from "./payment.validation.js";
-import config from "../../config/index.js";
-import { stripe } from "../../lib/stripe.js";
-import Stripe from "stripe";
-import { prisma } from "../../lib/prisma.js";
-import { PaymentStatus, UserRole } from "../../generated/prisma/enums.js";
+import { UserRole } from "../../generated/prisma/enums.js";
 
 const createPayment = catchAsync(async (req: Request, res: Response) => {
   const validationResult = paymentValidation.createPaymentSchema.safeParse(
@@ -83,81 +79,22 @@ const createStripeCheckoutSession = catchAsync(
 );
 
 const handleStripeWebhook = catchAsync(async (req: Request, res: Response) => {
-  const signature = req.headers["stripe-signature"];
+  const signatureHeader = req.headers["stripe-signature"];
+  const signature = Array.isArray(signatureHeader)
+    ? signatureHeader[0]
+    : signatureHeader;
 
   if (!signature) {
     throw new AppError(httpStatus.BAD_REQUEST, "Stripe signature is missing");
   }
 
-  const webhookSecret = config.stripe_webhook_secret;
-
-  if (!webhookSecret) {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      "Stripe webhook secret is not configured",
-    );
-  }
-
-  const event = stripe.webhooks.constructEvent(
-    req.body,
-    signature,
-    webhookSecret,
-  );
-
-  console.log("Stripe webhook event:", event.type);
-
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-
-    const rentalOrderId = session.metadata?.rentalOrderId;
-
-    if (!rentalOrderId) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Rental order ID is missing from Stripe session metadata",
-      );
-    }
-
-    const payment = await prisma.payment.findUnique({
-      where: {
-        rentalOrderId,
-      },
-    });
-
-    if (!payment) {
-      throw new AppError(httpStatus.NOT_FOUND, "Payment record not found");
-    }
-
-    await prisma.$transaction([
-      prisma.payment.update({
-        where: {
-          id: payment.id,
-        },
-        data: {
-          status: PaymentStatus.PAID,
-          paidAt: new Date(),
-          transactionId: session.id,
-        },
-      }),
-
-      prisma.rentalOrder.update({
-        where: {
-          id: rentalOrderId,
-        },
-        data: {
-          status: "PAID",
-        },
-      }),
-    ]);
-  }
+  const result = await paymentService.handleStripeWebhook(req.body, signature);
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
     message: "Stripe webhook received successfully",
-    data: {
-      eventType: event.type,
-    },
+    data: result,
   });
 });
 
