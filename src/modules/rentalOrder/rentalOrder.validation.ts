@@ -24,12 +24,12 @@ const createRentalOrderSchema = z
     path: ["endDate"],
   });
 
-  const updateRentalOrderSchema = z.object({
-    status: z.enum(
-      ["PICKED_UP", "RETURNED", "CANCELLED"],
-      "Status must be PICKED_UP, RETURNED, or CANCELLED",
-    ),
-  });
+const updateRentalOrderSchema = z.object({
+  status: z.enum(
+    ["CONFIRMED", "PICKED_UP", "RETURNED", "CANCELLED"],
+    "Status must be CONFIRMED, PICKED_UP, RETURNED, or CANCELLED",
+  ),
+});
 
 export const rentalOrderValidation = {
   createRentalOrderSchema,

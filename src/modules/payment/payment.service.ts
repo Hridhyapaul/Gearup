@@ -44,6 +44,13 @@ const createPayment = async (
     );
   }
 
+  if (rentalOrder.status !== "CONFIRMED") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Payment can only be created for a confirmed rental order",
+    );
+  }
+
   if (rentalOrder.payment) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -178,6 +185,13 @@ const createStripeCheckoutSession = async (
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "Payment cannot be created for a cancelled rental order",
+    );
+  }
+
+  if (rentalOrder.status !== "CONFIRMED") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Stripe checkout is only available for confirmed rental orders",
     );
   }
 
@@ -317,6 +331,23 @@ const completePaymentFromCheckoutSession = async (
   }
 
   const orderId = rentalOrderId ?? payment.rentalOrderId;
+
+  const rentalOrder = await prisma.rentalOrder.findUnique({
+    where: { id: orderId },
+    select: { id: true, status: true },
+  });
+
+  if (!rentalOrder) {
+    throw new AppError(httpStatus.NOT_FOUND, "Rental order not found");
+  }
+
+  // Flow: CONFIRMED → PAID (payment gateway). Already-PAID is handled above.
+  if (rentalOrder.status !== "CONFIRMED" && rentalOrder.status !== "PAID") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Only confirmed rental orders can be marked as paid",
+    );
+  }
 
   await prisma.$transaction([
     prisma.payment.update({

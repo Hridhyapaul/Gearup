@@ -255,6 +255,162 @@ const getRentalOrderById = async (
   return rentalOrder;
 };
 
+const rentalOrderInclude = {
+  items: {
+    include: {
+      gearItem: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          image: true,
+        },
+      },
+    },
+  },
+  payment: true,
+} as const;
+
+/**
+ * Allowed flow:
+ * PLACED → CONFIRMED (provider) | CANCELLED (customer)
+ * CONFIRMED → PAID (payment gateway only)
+ * PAID → PICKED_UP (provider)
+ * PICKED_UP → RETURNED (provider)
+ */
+const assertManualStatusTransition = (
+  currentStatus: RentalOrderStatus,
+  nextStatus: RentalOrderStatus,
+  userRole: UserRole,
+  isCustomerOwner: boolean,
+  isProviderOwner: boolean,
+) => {
+  switch (nextStatus) {
+    case RentalOrderStatus.CANCELLED: {
+      if (currentStatus !== RentalOrderStatus.PLACED) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Only placed rental orders can be cancelled",
+        );
+      }
+
+      if (userRole === UserRole.CUSTOMER && !isCustomerOwner) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "You are not allowed to cancel this rental order",
+        );
+      }
+
+      if (
+        userRole !== UserRole.CUSTOMER &&
+        userRole !== UserRole.ADMIN
+      ) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "Only the customer can cancel a placed rental order",
+        );
+      }
+
+      break;
+    }
+    case RentalOrderStatus.CONFIRMED: {
+      if (currentStatus !== RentalOrderStatus.PLACED) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Only placed rental orders can be confirmed",
+        );
+      }
+
+      if (userRole === UserRole.PROVIDER && !isProviderOwner) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "You are not allowed to confirm this rental order",
+        );
+      }
+
+      if (
+        userRole !== UserRole.PROVIDER &&
+        userRole !== UserRole.ADMIN
+      ) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "Only the provider can confirm a rental order",
+        );
+      }
+
+      break;
+    }
+    case RentalOrderStatus.PICKED_UP: {
+      if (currentStatus !== RentalOrderStatus.PAID) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Only paid rental orders can be marked as picked up",
+        );
+      }
+
+      if (userRole === UserRole.PROVIDER && !isProviderOwner) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "You are not allowed to update this rental order",
+        );
+      }
+
+      if (
+        userRole !== UserRole.PROVIDER &&
+        userRole !== UserRole.ADMIN
+      ) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "Only the provider can mark a rental order as picked up",
+        );
+      }
+
+      break;
+    }
+    case RentalOrderStatus.RETURNED: {
+      if (currentStatus !== RentalOrderStatus.PICKED_UP) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Only picked-up rental orders can be marked as returned",
+        );
+      }
+
+      if (userRole === UserRole.PROVIDER && !isProviderOwner) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "You are not allowed to update this rental order",
+        );
+      }
+
+      if (
+        userRole !== UserRole.PROVIDER &&
+        userRole !== UserRole.ADMIN
+      ) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "Only the provider can mark a rental order as returned",
+        );
+      }
+
+      break;
+    }
+    case RentalOrderStatus.PAID:
+    case RentalOrderStatus.PLACED: {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "This rental order status cannot be set manually",
+      );
+    }
+    default: {
+      const _exhaustive: never = nextStatus;
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Unsupported rental order status: ${_exhaustive}`,
+      );
+    }
+  }
+};
+
 const updateRentalOrder = async (
   rentalOrderId: string,
   status: RentalOrderStatus,
@@ -285,107 +441,18 @@ const updateRentalOrder = async (
     );
   }
 
-  if (userRole === UserRole.PROVIDER) {
-    const isProviderOwner = rentalOrder.items.some(
-      (item) => item.gearItem.providerId === userId,
-    );
+  const isCustomerOwner = rentalOrder.customerId === userId;
+  const isProviderOwner = rentalOrder.items.some(
+    (item) => item.gearItem.providerId === userId,
+  );
 
-    if (!isProviderOwner) {
-      throw new AppError(
-        httpStatus.FORBIDDEN,
-        "You are not allowed to update this rental order",
-      );
-    }
-  }
-
-  /*
-   * Handle rental order cancellation
-   */
-  if (status === RentalOrderStatus.CANCELLED) {
-    if (rentalOrder.status !== RentalOrderStatus.PLACED) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Only placed rental orders can be cancelled",
-      );
-    }
-
-    return await prisma.$transaction(async (tx) => {
-      const updatedRentalOrder = await tx.rentalOrder.update({
-        where: {
-          id: rentalOrderId,
-        },
-        data: {
-          status: RentalOrderStatus.CANCELLED,
-        },
-        include: {
-          items: {
-            include: {
-              gearItem: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  image: true,
-                },
-              },
-            },
-          },
-          payment: true,
-        },
-      });
-
-      for (const item of rentalOrder.items) {
-        await tx.gearItem.update({
-          where: {
-            id: item.gearItemId,
-          },
-          data: {
-            availableStock: {
-              increment: item.quantity,
-            },
-          },
-        });
-      }
-
-      return updatedRentalOrder;
-    });
-  }
-
-  /*
-   * Prevent updating a returned order
-   */
-  if (rentalOrder.status === RentalOrderStatus.RETURNED) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Returned rental order cannot be updated",
-    );
-  }
-
-  /*
-   * PAID → PICKED_UP
-   */
-  if (
-    rentalOrder.status === RentalOrderStatus.PAID &&
-    status !== RentalOrderStatus.PICKED_UP
-  ) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "A paid rental order can only be picked up",
-    );
-  }
-
-  /*
-   * PICKED_UP → RETURNED
-   */
-  if (
-    rentalOrder.status === RentalOrderStatus.PICKED_UP &&
-    status !== RentalOrderStatus.RETURNED
-  ) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "A picked-up rental order can only be returned",
-    );
-  }
+  assertManualStatusTransition(
+    rentalOrder.status,
+    status,
+    userRole,
+    isCustomerOwner,
+    isProviderOwner,
+  );
 
   return await prisma.$transaction(async (tx) => {
     const updatedRentalOrder = await tx.rentalOrder.update({
@@ -395,27 +462,14 @@ const updateRentalOrder = async (
       data: {
         status,
       },
-      include: {
-        items: {
-          include: {
-            gearItem: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                image: true,
-              },
-            },
-          },
-        },
-        payment: true,
-      },
+      include: rentalOrderInclude,
     });
 
-    /*
-     * Restore stock when gear is returned
-     */
-    if (status === RentalOrderStatus.RETURNED) {
+    // Restore stock when order is cancelled (from PLACED) or returned.
+    if (
+      status === RentalOrderStatus.CANCELLED ||
+      status === RentalOrderStatus.RETURNED
+    ) {
       for (const item of rentalOrder.items) {
         await tx.gearItem.update({
           where: {

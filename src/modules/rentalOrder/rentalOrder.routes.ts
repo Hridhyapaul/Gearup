@@ -25,7 +25,7 @@ router.get(
 
 router.patch(
   "/:rentalOrderId/status",
-  auth(UserRole.PROVIDER, UserRole.ADMIN),
+  auth(UserRole.CUSTOMER, UserRole.PROVIDER, UserRole.ADMIN),
   rentalOrderController.updateRentalOrder,
 );
 
